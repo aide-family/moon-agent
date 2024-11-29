@@ -8,11 +8,12 @@ use serde::Deserialize;
 pub struct TaskActionRequest {
     pub action: TaskAction,
     pub alert: AlertItem,
+    pub biz_id: String,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct AddTaskRequest {
-    pub action: TaskAction,
+    pub biz_id: String,
     pub script_type: ScriptType,
     pub content: String,
 }
@@ -38,7 +39,11 @@ impl API {
 
         // 根据action执行不同的任务
         let result = match req.action {
-            TaskAction::ProcessAlert => task_manager.process_alert(req.alert.clone()).await,
+            TaskAction::ProcessAlert => {
+                task_manager
+                    .process_alert(&req.biz_id, req.alert.clone())
+                    .await
+            }
         };
 
         match result {
@@ -62,14 +67,14 @@ impl API {
         let mut task_manager = data.task_manager.clone();
 
         let script_req = req.to_script_request();
-        task_manager.add_task(req.action.clone(), script_req.clone());
+        task_manager.add_task(req.biz_id.clone(), script_req.clone());
         HttpResponse::Ok().json(script_req)
     }
 
-    pub async fn remove_task(data: web::Data<AppState>, req: web::Json<TaskAction>) -> impl Responder {
+    pub async fn remove_task(data: web::Data<AppState>, req: web::Json<String>) -> impl Responder {
         let mut task_manager = data.task_manager.clone();
 
-        let result = task_manager.remove_task(&req);
+        let result = task_manager.remove_task(&req.0);
 
         match result {
             Some(script_req) => HttpResponse::Ok().json(script_req),
@@ -77,10 +82,10 @@ impl API {
         }
     }
 
-    pub async fn get_task(data: web::Data<AppState>, req: web::Json<TaskAction>) -> impl Responder {
+    pub async fn get_task(data: web::Data<AppState>, req: web::Json<String>) -> impl Responder {
         let task_manager = data.task_manager.clone();
 
-        let result = task_manager.get_task(&req);
+        let result = task_manager.get_task(&req.0);
 
         match result {
             Some(script_req) => HttpResponse::Ok().json(script_req),
