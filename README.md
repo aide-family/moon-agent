@@ -36,6 +36,12 @@ cargo build
 cargo run
 ```
 
+4. 打包
+
+```bash
+cargo build --release
+```
+
 ## 使用示例
 
 * 执行 Python2 脚本

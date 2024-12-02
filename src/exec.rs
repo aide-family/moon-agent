@@ -22,6 +22,8 @@ impl ScriptExecutor {
             .write_all(script_req.content.as_bytes())
             .map_err(|e| format!("Failed to write script: {}", e))?;
 
+        println!("file_path: {}", temp_file.path().display());
+
         // 设置执行权限
         #[cfg(unix)]
         fs::set_permissions(temp_file.path(), fs::Permissions::from_mode(0o755))
@@ -56,4 +58,28 @@ impl ScriptExecutor {
 // 原有的自定义脚本执行处理函数
 pub async fn execute_script(script_req: &ScriptRequest) -> Result<ScriptResponse, String> {
     ScriptExecutor::execute(&script_req)
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_execute_script() {
+        let script_req = ScriptRequest {
+            script_type: ScriptType::Python2,
+            content: "print('Hello, World!')".to_string(),
+        };
+
+        let result = execute_script(&script_req).await;
+
+        assert!(result.is_ok());
+
+        let script_resp = result.unwrap();
+
+        assert_eq!(script_resp.stdout, "Hello, World!\n");
+        assert_eq!(script_resp.stderr, "");
+        assert_eq!(script_resp.exit_code, 0);
+    }
 }
